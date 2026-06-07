@@ -124,3 +124,49 @@ func TestSymlinkUpdated(t *testing.T) {
 		t.Errorf("symlink should point to s2 (%s), got %s (s1 was %s)", s2.Dir, target, s1.Dir)
 	}
 }
+
+func TestUpdateRunSymlink(t *testing.T) {
+	dir := t.TempDir()
+
+	s, err := NewSessionAt(dir)
+	if err != nil {
+		t.Fatalf("NewSessionAt: %v", err)
+	}
+
+	f, err := s.CreateRunFile(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	if err := s.UpdateRunSymlink(1); err != nil {
+		t.Fatalf("UpdateRunSymlink(1): %v", err)
+	}
+
+	linkPath := filepath.Join(s.Dir, "last")
+	target, err := os.Readlink(linkPath)
+	if err != nil {
+		t.Fatalf("readlink: %v", err)
+	}
+	if target != "run.1.log" {
+		t.Errorf("expected run.1.log, got %s", target)
+	}
+
+	f2, err := s.CreateRunFile(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f2.Close()
+
+	if err := s.UpdateRunSymlink(2); err != nil {
+		t.Fatalf("UpdateRunSymlink(2): %v", err)
+	}
+
+	target, err = os.Readlink(linkPath)
+	if err != nil {
+		t.Fatalf("readlink: %v", err)
+	}
+	if target != "run.2.log" {
+		t.Errorf("expected run.2.log, got %s", target)
+	}
+}

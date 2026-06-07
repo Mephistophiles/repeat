@@ -49,6 +49,13 @@ func (s *Session) CreateRunFile(index int) (*os.File, error) {
 	return os.Create(path)
 }
 
+func (s *Session) UpdateRunSymlink(index int) error {
+	name := fmt.Sprintf("run.%d.log", index)
+	linkPath := filepath.Join(s.Dir, "last")
+	_ = os.Remove(linkPath)
+	return os.Symlink(name, linkPath)
+}
+
 func WriteHeader(w *os.File, index, total int, command string, started time.Time) {
 	fmt.Fprintf(w, "# repeat — run %d of %d\n", index, total)
 	fmt.Fprintf(w, "# command: %s\n", command)

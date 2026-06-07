@@ -135,6 +135,7 @@ func runSimple(ctx context.Context, session *log.Session, total int, command str
 		res := runner.Run(ctx, opts)
 		log.WriteFooter(logFile, res)
 		logFile.Close()
+		session.UpdateRunSymlink(i)
 		results = append(results, res)
 
 		if verbose && res.Interrupted {
@@ -237,6 +238,7 @@ func runTUI(ctx context.Context, cancel context.CancelFunc, session *log.Session
 			res := runner.Run(ctx, opts)
 			log.WriteFooter(logFile, res)
 			logFile.Close()
+			session.UpdateRunSymlink(i)
 
 			msg := tui.RunCompletedMsg{Result: res}
 			model.MsgChan <- msg

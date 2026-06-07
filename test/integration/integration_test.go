@@ -233,6 +233,27 @@ func TestSymlink(t *testing.T) {
 	}
 }
 
+func TestRunLastSymlink(t *testing.T) {
+	bin := buildBinary(t)
+	dir := t.TempDir()
+
+	cmd := exec.Command(bin, "3", "echo", "hello")
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("repeat: %v\n%s", err, out)
+	}
+
+	linkPath := filepath.Join(dir, ".repeat", "last", "last")
+	target, err := os.Readlink(linkPath)
+	if err != nil {
+		t.Fatalf("run last symlink: %v", err)
+	}
+	if target != "run.3.log" {
+		t.Errorf("expected run.3.log, got %s", target)
+	}
+}
+
 func countRunLogs(dir string) int {
 	entries, err := os.ReadDir(filepath.Join(dir, ".repeat"))
 	if err != nil {
