@@ -66,9 +66,9 @@ func (m Model) viewNormal() string {
 		b.WriteString(sepStyle.Render(strings.Repeat("─", w)))
 		b.WriteString("\n")
 
-		availableLines := m.Height - strings.Count(b.String(), "\n") - 3
-		if availableLines < 3 {
-			availableLines = 3
+		availableLines := m.Height - strings.Count(b.String(), "\n")
+		if availableLines < 1 {
+			availableLines = 1
 		}
 
 		start := len(m.OutputLines) - availableLines
@@ -94,11 +94,11 @@ func (m Model) viewUntilSuccess() string {
 	b.WriteString(fmt.Sprintf(" Attempt %d\n", len(m.Results)+1))
 	b.WriteString("\n")
 
-	elapsed := time.Duration(0)
-	for _, r := range m.Results {
-		elapsed += r.Duration
+	if !m.StartTime.IsZero() {
+		b.WriteString(etaStyle.Render(fmt.Sprintf("Elapsed: %s", formatDuration(time.Since(m.StartTime)))))
+	} else {
+		b.WriteString(etaStyle.Render("Elapsed: 0s"))
 	}
-	b.WriteString(etaStyle.Render(fmt.Sprintf("Elapsed: %s", formatDuration(elapsed))))
 	b.WriteString("\n\n")
 
 	if len(m.Results) > 0 {

@@ -24,6 +24,7 @@ type Model struct {
 	CurrentRun int
 	Running    bool
 	Finished   bool
+	StartTime  time.Time
 
 	Progress    progress.Model
 	Spinner     spinner.Model

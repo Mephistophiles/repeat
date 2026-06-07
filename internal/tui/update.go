@@ -32,7 +32,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case RunStartedMsg:
 		m.CurrentRun = msg.Index
 		m.Running = true
-		return m, nil
+		if m.StartTime.IsZero() {
+			m.StartTime = time.Now()
+		}
+		return m, m.listenTick()
 
 	case RunOutputMsg:
 		if m.Verbose {

@@ -142,6 +142,42 @@ func TestRunStdoutCapped(t *testing.T) {
 	if len(r.Stdout) > maxBufSize {
 		t.Errorf("stdout should be capped at %d, got %d", maxBufSize, len(r.Stdout))
 	}
+	if !r.StdoutTruncated {
+		t.Error("expected StdoutTruncated=true")
+	}
+}
+
+func TestLastErrorExitCode(t *testing.T) {
+	results := []Result{
+		{RunIndex: 1, ExitCode: 0},
+		{RunIndex: 2, ExitCode: 5},
+		{RunIndex: 3, ExitCode: 0},
+	}
+	if code := LastErrorExitCode(results); code != 5 {
+		t.Errorf("expected exit code 5, got %d", code)
+	}
+
+	allOK := []Result{
+		{RunIndex: 1, ExitCode: 0},
+		{RunIndex: 2, ExitCode: 0},
+	}
+	if code := LastErrorExitCode(allOK); code != 0 {
+		t.Errorf("expected exit code 0, got %d", code)
+	}
+
+	empty := []Result{}
+	if code := LastErrorExitCode(empty); code != 0 {
+		t.Errorf("expected exit code 0 for empty, got %d", code)
+	}
+
+	mixed := []Result{
+		{RunIndex: 1, ExitCode: 0},
+		{RunIndex: 2, TimedOut: true},
+		{RunIndex: 3, Interrupted: true},
+	}
+	if code := LastErrorExitCode(mixed); code != 130 {
+		t.Errorf("expected exit code 130 (last = interrupted), got %d", code)
+	}
 }
 
 func TestRunIndexAndCommand(t *testing.T) {

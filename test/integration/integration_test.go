@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -95,7 +96,7 @@ func TestVerbose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("repeat: %v\n%s", err, out)
 	}
-	if !contains(string(out), "hello") {
+	if !strings.Contains(string(out), "hello") {
 		t.Errorf("expected 'hello' in output, got %q", string(out))
 	}
 }
@@ -106,7 +107,7 @@ func TestJSON(t *testing.T) {
 
 	cmd := exec.Command(bin, "--json", "2", "echo", "hello")
 	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
+	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("repeat: %v\n%s", err, out)
 	}
@@ -254,6 +255,32 @@ func TestRunLastSymlink(t *testing.T) {
 	}
 }
 
+func TestVersion(t *testing.T) {
+	bin := buildBinary(t)
+	cmd := exec.Command(bin, "--version")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("repeat --version: %v\n%s", err, out)
+	}
+	if !strings.Contains(string(out), "repeat") {
+		t.Errorf("expected version output to contain 'repeat', got %q", string(out))
+	}
+}
+
+func TestUntilSuccessWithN(t *testing.T) {
+	bin := buildBinary(t)
+	cmd := exec.Command(bin, "--until-success", "3", "echo", "hello")
+	err := cmd.Run()
+	if err == nil {
+		t.Fatal("expected error for --until-success with N")
+	}
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		if exitErr.ExitCode() != 2 {
+			t.Errorf("expected exit code 2, got %d", exitErr.ExitCode())
+		}
+	}
+}
+
 func countRunLogs(dir string) int {
 	entries, err := os.ReadDir(filepath.Join(dir, ".repeat"))
 	if err != nil {
@@ -270,13 +297,4 @@ func countRunLogs(dir string) int {
 		}
 	}
 	return count
-}
-
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

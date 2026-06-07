@@ -4,6 +4,9 @@
 # Logs & sessions
 .repeat/
 
+# Build artifacts
+/build/
+
 # Go
 *.exe
 *.test

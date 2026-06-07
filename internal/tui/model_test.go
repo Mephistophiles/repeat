@@ -98,3 +98,15 @@ func TestFormatDuration(t *testing.T) {
 		}
 	}
 }
+
+func TestRunStartedReturnsCmd(t *testing.T) {
+	m := Model{
+		MsgChan: make(chan Msg, 1),
+		Done:    make(chan struct{}),
+	}
+	msg := RunStartedMsg{Index: 1}
+	_, cmd := m.Update(msg)
+	if cmd == nil {
+		t.Error("expected non-nil command after RunStartedMsg")
+	}
+}

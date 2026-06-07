@@ -100,6 +100,46 @@ func TestWriteHeaderAndFooter(t *testing.T) {
 	}
 }
 
+func TestWriteFooterTruncationMarker(t *testing.T) {
+	dir := t.TempDir()
+
+	s, err := NewSessionAt(dir)
+	if err != nil {
+		t.Fatalf("NewSessionAt: %v", err)
+	}
+
+	f, err := s.CreateRunFile(1)
+	if err != nil {
+		t.Fatalf("CreateRunFile: %v", err)
+	}
+	defer f.Close()
+
+	WriteHeader(f, 1, 1, "echo long", time.Now())
+	f.WriteString("short output\n")
+
+	r := runner.Result{
+		RunIndex:         1,
+		ExitCode:         0,
+		StartedAt:        time.Now(),
+		FinishedAt:       time.Now(),
+		Duration:         5 * time.Millisecond,
+		StdoutTruncated:  true,
+		StderrTruncated:  true,
+	}
+	WriteFooter(f, r)
+
+	f.Seek(0, 0)
+	data, _ := os.ReadFile(f.Name())
+	content := string(data)
+
+	if !strings.Contains(content, "# stdout truncated at 64KB") {
+		t.Error("missing stdout truncation marker")
+	}
+	if !strings.Contains(content, "# stderr truncated at 64KB") {
+		t.Error("missing stderr truncation marker")
+	}
+}
+
 func TestSymlinkUpdated(t *testing.T) {
 	dir := t.TempDir()
 

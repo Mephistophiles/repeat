@@ -57,7 +57,11 @@ func (s *Session) UpdateRunSymlink(index int) error {
 }
 
 func WriteHeader(w *os.File, index, total int, command string, started time.Time) {
-	fmt.Fprintf(w, "# repeat — run %d of %d\n", index, total)
+	if total > 0 {
+		fmt.Fprintf(w, "# repeat — run %d of %d\n", index, total)
+	} else {
+		fmt.Fprintf(w, "# repeat — run %d\n", index)
+	}
 	fmt.Fprintf(w, "# command: %s\n", command)
 	fmt.Fprintf(w, "# started:  %s\n", started.Format(time.RFC3339Nano))
 	fmt.Fprintln(w, "---")
@@ -67,6 +71,12 @@ func WriteFooter(w *os.File, r runner.Result) {
 	fmt.Fprintf(w, "\n---\n")
 	fmt.Fprintf(w, "# finished: %s\n", r.FinishedAt.Format(time.RFC3339Nano))
 	fmt.Fprintf(w, "# duration: %s\n", r.Duration)
+	if r.StdoutTruncated {
+		fmt.Fprintf(w, "# stdout truncated at 64KB\n")
+	}
+	if r.StderrTruncated {
+		fmt.Fprintf(w, "# stderr truncated at 64KB\n")
+	}
 	if r.TimedOut {
 		fmt.Fprintf(w, "# exit code: - (timed out)\n")
 	} else if r.Interrupted {

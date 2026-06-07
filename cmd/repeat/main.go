@@ -19,6 +19,8 @@ import (
 	"github.com/Mephistophiles/repeat/internal/tui"
 )
 
+var buildVersion = "dev"
+
 func main() {
 	verbose := flag.Bool("v", false, "show command output in stdout (TUI: scroll area)")
 	delay := flag.Duration("d", 0, "delay between runs (e.g. 1s, 500ms)")
@@ -27,6 +29,7 @@ func main() {
 	untilSuccess := flag.Bool("until-success", false, "run until command succeeds (exit 0)")
 	progress := flag.Bool("progress", false, "show TUI with progress bar and ETA")
 	jsonOut := flag.Bool("json", false, "output JSON summary at the end")
+	versionFlag := flag.Bool("version", false, "show version")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: repeat [flags] <N> <command> [args...]\n")
@@ -35,6 +38,18 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println("repeat", buildVersion)
+		os.Exit(0)
+	}
+
+	if *untilSuccess && flag.NArg() >= 1 {
+		if n, err := strconv.Atoi(flag.Arg(0)); err == nil && n >= 1 {
+			fmt.Fprintln(os.Stderr, "error: --until-success is incompatible with <N>")
+			os.Exit(2)
+		}
+	}
 
 	if *untilSuccess && flag.NArg() < 1 {
 		fmt.Fprintln(os.Stderr, "error: --until-success requires a command")
@@ -138,6 +153,8 @@ func runSimple(ctx context.Context, session *log.Session, total int, command str
 		session.UpdateRunSymlink(i)
 		results = append(results, res)
 
+		fmt.Fprintf(os.Stderr, "%s  %s  %s\n", progressPrefix(res.RunIndex, total, mode), progressStatus(res), progressDuration(res.Duration))
+
 		if verbose && res.Interrupted {
 			fmt.Fprintln(os.Stderr, "interrupted")
 		}
@@ -162,12 +179,7 @@ func runSimple(ctx context.Context, session *log.Session, total int, command str
 		return 0
 	}
 
-	for i := len(results) - 1; i >= 0; i-- {
-		if !results[i].OK() {
-			return results[i].ExitStatus()
-		}
-	}
-	return 0
+	return runner.LastErrorExitCode(results)
 }
 
 func runTUI(ctx context.Context, cancel context.CancelFunc, session *log.Session, mode tui.Mode, total int, command string, args []string, timeout, delay time.Duration, verbose bool, stopOnErr bool, jsonOut bool) {
@@ -265,13 +277,47 @@ func runTUI(ctx context.Context, cancel context.CancelFunc, session *log.Session
 		printJSON(command, args, results)
 	}
 
-	if stopOnErr {
-		for _, r := range results {
-			if !r.OK() {
-				os.Exit(r.ExitStatus())
-			}
-		}
+	os.Exit(runner.LastErrorExitCode(results))
+}
+
+func progressPrefix(index, total int, mode tui.Mode) string {
+	if mode == tui.ModeUntilSuccess {
+		return fmt.Sprintf("[%d]", index)
 	}
+	return fmt.Sprintf("[%d/%d]", index, total)
+}
+
+func progressStatus(r runner.Result) string {
+	if r.TimedOut {
+		return "timeout"
+	}
+	if r.Interrupted {
+		return "interrupted"
+	}
+	if r.ExitCode != 0 {
+		return fmt.Sprintf("exit %d", r.ExitCode)
+	}
+	return "ok"
+}
+
+func progressDuration(d time.Duration) string {
+	if d == 0 {
+		return "0s"
+	}
+	if d < time.Second {
+		return d.Round(time.Millisecond).String()
+	}
+	if d < time.Minute {
+		return fmt.Sprintf("%.1fs", d.Seconds())
+	}
+	if d < time.Hour {
+		m := d / time.Minute
+		s := (d % time.Minute).Seconds()
+		return fmt.Sprintf("%dm %.0fs", m, s)
+	}
+	h := d / time.Hour
+	m := (d % time.Hour) / time.Minute
+	return fmt.Sprintf("%dh %dm", h, m)
 }
 
 func printJSON(command string, args []string, results []runner.Result) {
