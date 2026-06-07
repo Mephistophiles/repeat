@@ -265,7 +265,7 @@ func runTUI(ctx context.Context, cancel context.CancelFunc, session *log.Session
 		}
 	}()
 
-	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithContext(ctx))
+	p := tea.NewProgram(model, tea.WithContext(ctx))
 	finalModel, err := p.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
