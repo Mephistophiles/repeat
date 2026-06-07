@@ -1,0 +1,16 @@
+# Binaries
+/repeat
+
+# Logs & sessions
+.repeat/
+
+# Go
+*.exe
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
